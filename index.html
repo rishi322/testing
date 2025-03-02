@@ -156,7 +156,7 @@
      <!-- Report Analysis Section -->
     <div class="section">
         <h3>Compare Reports</h3>
-   
+
         <div id="reportResponse" >
             <div class="loader" id="reportLoader"></div>
         </div>
@@ -226,6 +226,7 @@
               // Automatically generate Word Cloud & Insights
                 generateWordCloud();
                 fetchInsights();
+                generateReport();
         }
 
         async function generateReport() {
