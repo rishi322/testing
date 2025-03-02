@@ -79,6 +79,7 @@
             max-height: 100px;
             overflow: hidden;
             position: relative;
+            transition: max-height 0.3s ease;
         }
 
         .text-preview::after {
@@ -130,17 +131,9 @@
 
         <!-- Query Section -->
         <div class="section">
-            <h3>Search Reports</h3>
-            <input type="text" id="queryInput" placeholder="Enter your search query">
-            <button onclick="searchReports()">Search</button>
+            <h3>Key Insights of Reports</h3>
+            <button onclick="searchReports()">Key Insights</button>
             <div id="response" class="response"></div>
-        </div>
-
-        <!-- Comparison Section -->
-        <div class="section">
-            <h3>Compare Reports</h3>
-            <button onclick="compareReports()">Compare Reports</button>
-            <div id="comparison" class="comparison"></div>
         </div>
 
         <!-- Word Cloud Section -->
@@ -156,6 +149,7 @@
     <script>
         const API_URL = "https://bounceai-iks2kmz3ha-uc.a.run.app";
 
+        // Upload PDF Files
         async function uploadFiles() {
             const files = document.getElementById('pdfUpload').files;
             if (files.length === 0) {
@@ -194,25 +188,32 @@
             }
         }
 
+        // Search Reports
         async function searchReports() {
-            const query = document.getElementById('queryInput').value;
-            if (!query) {
-                alert("Please enter a search query.");
-                return;
-            }
+
 
             try {
-                const response = await fetch(`${API_URL}/query/`, {
-                    method: "POST",
+                const response = await fetch(`${API_URL}/analyze_reports/`, {
+                    method: "GET",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ query: query }),
+
                 });
 
                 const result = await response.json();
+                let sources = result.sources
+                let summaries = result.summaries
+                let text = ''
+                for(var i = 0 ; i < sources.length; i++){
+                  console.log(sources[i])
+                  console.log(summaries[i])
+                  text += ("Source: " + sources[i] + "Summary: " +summaries)
+
+              }
+                console.log(result)
                 const responseDiv = document.getElementById('response');
                 responseDiv.innerHTML = `
                     <h3>Results:</h3>
-                    <div class="text-preview">${result.response}</div>
+                    <div class="text-preview">${text}</div>
                     <div class="view-more" onclick="toggleFullText(this)">View More</div>
                 `;
             } catch (error) {
@@ -220,6 +221,7 @@
             }
         }
 
+        // Generate Word Cloud
         async function generateWordCloud() {
             try {
                 const response = await fetch(`${API_URL}/generate_dynamic_wordcloud/`, {
@@ -239,13 +241,16 @@
             }
         }
 
+        // Toggle Full Text
         function toggleFullText(element) {
             const textPreview = element.previousElementSibling;
-            if (textPreview.style.maxHeight) {
-                textPreview.style.maxHeight = null;
+            if (textPreview.style.maxHeight === "100px" || !textPreview.style.maxHeight) {
+                // Expand the text to show full content
+                textPreview.style.maxHeight = "none"; // Remove height restriction
                 element.innerText = "View Less";
             } else {
-                textPreview.style.maxHeight = "100px";
+                // Collapse the text back to preview mode
+                textPreview.style.maxHeight = "100px"; // Restrict height to 100px
                 element.innerText = "View More";
             }
         }
