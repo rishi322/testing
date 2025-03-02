@@ -197,35 +197,81 @@
 
                 const result = await response.json();
                 document.getElementById('uploadStatus').innerText = result.message;
-
-                // Automatically generate Word Cloud & Insights
-                generateWordCloud();
-                fetchInsights();
-            } catch (error) {
+            }catch (error) {
                 console.error("Error uploading files:", error);
             }
+            try {
+                const response = await fetch(`${API_URL}/check_plagiarism/`, {
+                    method: "POST",
+                    body: formData,
+                });
+
+                const result = await response.json();
+                document.getElementById('uploadStatus').innerText = `Your similarity percent is ${result.interpretation} & Your Semantic Similarity is ${result.similarity * 100}`;
+                console.log(result);
+            } catch (error) {
+                console.error("Error uploading files:", error);
+
+
+            }
+              // Automatically generate Word Cloud & Insights
+                generateWordCloud();
+                fetchInsights();
         }
 
+         // Search Reports
         async function fetchInsights() {
-            document.getElementById('insightsLoader').style.display = "block";
-            document.getElementById('insightsResponse').innerHTML = "";
+
 
             try {
-                const response = await fetch(`${API_URL}/analyze_reports/`, { method: "GET" });
-                const result = await response.json();
-                let text = result.summaries.map((summary, index) => `<strong>Source ${index + 1}:</strong> ${summary}`).join("<br><br>");
+                const response = await fetch(`${API_URL}/analyze_reports/`, {
+                    method: "GET",
+                    headers: { "Content-Type": "application/json" },
 
-                document.getElementById('insightsResponse').innerHTML = `
-                    <h3>Key Insights:</h3>
+                });
+
+                const result = await response.json();
+                let sources = result.sources
+                let summaries = result.summaries
+                let text = ''
+                for(var i = 0 ; i < sources.length; i++){
+                  console.log(sources[i])
+                  console.log(summaries[i])
+                  text += (" Source: " + sources[i] + "Summary: " +summaries + "\n\n")
+
+              }
+                console.log(text)
+                const responseDiv = document.getElementById('insightsResponse');
+                responseDiv.innerHTML = `
+                    <h3>Results:</h3>
                     <div class="text-preview">${text}</div>
                     <div class="view-more" onclick="toggleFullText(this)">View More</div>
                 `;
             } catch (error) {
-                console.error("Error fetching insights:", error);
-            } finally {
-                document.getElementById('insightsLoader').style.display = "none";
+                console.error("Error searching reports:", error);
             }
         }
+
+        // Generate Word Cloud Automatically
+        async function generateWordCloud() {
+            try {
+                const response = await fetch(`${API_URL}/generate_dynamic_wordcloud/`, {
+                    method: "GET"
+                });
+
+                if (!response.ok) {
+                    alert("Error generating word cloud.");
+                    return;
+                }
+
+                const blob = await response.blob();
+                const imgUrl = URL.createObjectURL(blob);
+                document.getElementById('wordcloudImage').src = imgUrl;
+            } catch (error) {
+                console.error("Error generating word cloud:", error);
+            }
+        }
+
 
         async function queryRAG() {
             const query = document.getElementById('queryInput').value;
@@ -238,10 +284,11 @@
                 const response = await fetch(`${API_URL}/rag_chat/`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ query }),
+                    body: JSON.stringify({ "query":query, "user_id":"10" }),
                 });
 
                 const result = await response.json();
+                console.log(result)
                 document.getElementById('queryResponse').innerHTML = `
                     <h3>Response:</h3>
                     <div class="text-preview">${result.response}</div>
