@@ -32,6 +32,7 @@
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
             margin: 20px 0;
             padding: 20px;
+            position: relative;
         }
 
         .section h3 {
@@ -60,12 +61,13 @@
             background-color: #3a5a8a;
         }
 
-        .response, .comparison, .wordcloud-container {
+        .response, .wordcloud-container {
             margin-top: 20px;
             padding: 15px;
             border: 1px solid #ddd;
             border-radius: 5px;
             background: #ffffff;
+            position: relative;
         }
 
         .wordcloud-container img {
@@ -82,14 +84,8 @@
             transition: max-height 0.3s ease;
         }
 
-        .text-preview::after {
-            content: "";
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 30px;
-            background: linear-gradient(to bottom, rgba(255, 255, 255, 0), rgba(255, 255, 255, 1));
+        .text-preview.expanded {
+            max-height: none;
         }
 
         .view-more {
@@ -101,6 +97,26 @@
 
         .view-more:hover {
             text-decoration: underline;
+        }
+
+        /* Loading Indicator */
+        .loader {
+            display: none;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4C72B0;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        @keyframes spin {
+            0% { transform: translate(-50%, -50%) rotate(0deg); }
+            100% { transform: translate(-50%, -50%) rotate(360deg); }
         }
 
         /* Responsive Design */
@@ -132,15 +148,18 @@
         <!-- Query Section -->
         <div class="section">
             <h3>Key Insights of Reports</h3>
-            <button onclick="searchReports()">Key Insights</button>
-            <div id="response" class="response"></div>
+            <input type="text" id="queryInput" placeholder="Enter your query...">
+            <button onclick="searchReports()">Get Insights</button>
+            <div id="response" class="response">
+                <div class="loader" id="insightsLoader"></div>
+            </div>
         </div>
 
         <!-- Word Cloud Section -->
         <div class="section">
-            <h3>Generate Word Cloud</h3>
-            <button onclick="generateWordCloud()">Show Reports Word Cloud</button>
+            <h3>Reports Word Cloud</h3>
             <div id="wordcloudContainer" class="wordcloud-container">
+                <div class="loader" id="wordcloudLoader"></div>
                 <img id="wordcloudImage" src="" alt="Word Cloud will appear here">
             </div>
         </div>
@@ -149,7 +168,7 @@
     <script>
         const API_URL = "https://bounceai-iks2kmz3ha-uc.a.run.app";
 
-        // Upload PDF Files
+        // Upload PDFs and automatically trigger word cloud & insights
         async function uploadFiles() {
             const files = document.getElementById('pdfUpload').files;
             if (files.length === 0) {
@@ -170,59 +189,48 @@
 
                 const result = await response.json();
                 document.getElementById('uploadStatus').innerText = result.message;
-            } catch (error) {
-                console.error("Error uploading files:", error);
-            }
+                console.log("Upload Response:", result);
 
-            try {
-                const response = await fetch(`${API_URL}/check_plagiarism/`, {
-                    method: "POST",
-                    body: formData,
-                });
-
-                const result = await response.json();
-                document.getElementById('uploadStatus').innerText = `Your similarity percent is ${result.interpretation} & Your Semantic Similarity is ${result.similarity * 100}`;
-                console.log(result);
+                // Automatically generate Word Cloud & Insights
+                generateWordCloud();
+                searchReports();
             } catch (error) {
                 console.error("Error uploading files:", error);
             }
         }
 
-        // Search Reports
+        // Fetch Insights with Loading Indicator
         async function searchReports() {
-
+            const query = document.getElementById('queryInput').value || "Summarize the reports";
+            document.getElementById('insightsLoader').style.display = "block";
+            document.getElementById('response').innerHTML = "";
 
             try {
                 const response = await fetch(`${API_URL}/analyze_reports/`, {
-                    method: "GET",
+                    method: "POST",
                     headers: { "Content-Type": "application/json" },
-
+                    body: JSON.stringify({ query: query }),
                 });
 
                 const result = await response.json();
-                let sources = result.sources
-                let summaries = result.summaries
-                let text = ''
-                for(var i = 0 ; i < sources.length; i++){
-                  console.log(sources[i])
-                  console.log(summaries[i])
-                  text += ("Source: " + sources[i] + "Summary: " +summaries)
+                let text = result.summaries.map((summary, index) => `<strong>Source ${index + 1}:</strong> ${summary}`).join("<br><br>");
 
-              }
-                console.log(result)
-                const responseDiv = document.getElementById('response');
-                responseDiv.innerHTML = `
-                    <h3>Results:</h3>
+                document.getElementById('response').innerHTML = `
+                    <h3>Key Insights:</h3>
                     <div class="text-preview">${text}</div>
                     <div class="view-more" onclick="toggleFullText(this)">View More</div>
                 `;
             } catch (error) {
-                console.error("Error searching reports:", error);
+                console.error("Error fetching insights:", error);
+            } finally {
+                document.getElementById('insightsLoader').style.display = "none";
             }
         }
 
-        // Generate Word Cloud
+        // Generate Word Cloud with Loader
         async function generateWordCloud() {
+            document.getElementById('wordcloudLoader').style.display = "block";
+
             try {
                 const response = await fetch(`${API_URL}/generate_dynamic_wordcloud/`, {
                     method: "GET"
@@ -238,21 +246,14 @@
                 document.getElementById('wordcloudImage').src = imgUrl;
             } catch (error) {
                 console.error("Error generating word cloud:", error);
+            } finally {
+                document.getElementById('wordcloudLoader').style.display = "none";
             }
         }
 
-        // Toggle Full Text
         function toggleFullText(element) {
-            const textPreview = element.previousElementSibling;
-            if (textPreview.style.maxHeight === "100px" || !textPreview.style.maxHeight) {
-                // Expand the text to show full content
-                textPreview.style.maxHeight = "none"; // Remove height restriction
-                element.innerText = "View Less";
-            } else {
-                // Collapse the text back to preview mode
-                textPreview.style.maxHeight = "100px"; // Restrict height to 100px
-                element.innerText = "View More";
-            }
+            element.previousElementSibling.classList.toggle("expanded");
+            element.innerText = element.previousElementSibling.classList.contains("expanded") ? "View Less" : "View More";
         }
     </script>
 </body>
