@@ -145,13 +145,22 @@
             <p id="uploadStatus"></p>
         </div>
 
-        <!-- Query Section -->
+        <!-- Key Insights Section -->
         <div class="section">
             <h3>Key Insights of Reports</h3>
-            <input type="text" id="queryInput" placeholder="Enter your query...">
-            <button onclick="searchReports()">Get Insights</button>
-            <div id="response" class="response">
+            <button onclick="fetchInsights()">Get Insights</button>
+            <div id="insightsResponse" class="response">
                 <div class="loader" id="insightsLoader"></div>
+            </div>
+        </div>
+
+        <!-- Query Section -->
+        <div class="section">
+            <h3>Ask a Question about Reports</h3>
+            <input type="text" id="queryInput" placeholder="Enter your query...">
+            <button onclick="queryRAG()">Get Answer</button>
+            <div id="queryResponse" class="response">
+                <div class="loader" id="queryLoader"></div>
             </div>
         </div>
 
@@ -168,7 +177,6 @@
     <script>
         const API_URL = "https://bounceai-iks2kmz3ha-uc.a.run.app";
 
-        // Upload PDFs and automatically trigger word cloud & insights
         async function uploadFiles() {
             const files = document.getElementById('pdfUpload').files;
             if (files.length === 0) {
@@ -189,33 +197,25 @@
 
                 const result = await response.json();
                 document.getElementById('uploadStatus').innerText = result.message;
-                console.log("Upload Response:", result);
 
                 // Automatically generate Word Cloud & Insights
                 generateWordCloud();
-                searchReports();
+                fetchInsights();
             } catch (error) {
                 console.error("Error uploading files:", error);
             }
         }
 
-        // Fetch Insights with Loading Indicator
-        async function searchReports() {
-            const query = document.getElementById('queryInput').value || "Summarize the reports";
+        async function fetchInsights() {
             document.getElementById('insightsLoader').style.display = "block";
-            document.getElementById('response').innerHTML = "";
+            document.getElementById('insightsResponse').innerHTML = "";
 
             try {
-                const response = await fetch(`${API_URL}/analyze_reports/`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ query: query }),
-                });
-
+                const response = await fetch(`${API_URL}/analyze_reports/`, { method: "GET" });
                 const result = await response.json();
                 let text = result.summaries.map((summary, index) => `<strong>Source ${index + 1}:</strong> ${summary}`).join("<br><br>");
 
-                document.getElementById('response').innerHTML = `
+                document.getElementById('insightsResponse').innerHTML = `
                     <h3>Key Insights:</h3>
                     <div class="text-preview">${text}</div>
                     <div class="view-more" onclick="toggleFullText(this)">View More</div>
@@ -227,27 +227,30 @@
             }
         }
 
-        // Generate Word Cloud with Loader
-        async function generateWordCloud() {
-            document.getElementById('wordcloudLoader').style.display = "block";
+        async function queryRAG() {
+            const query = document.getElementById('queryInput').value;
+            if (!query) return alert("Please enter a query!");
+
+            document.getElementById('queryLoader').style.display = "block";
+            document.getElementById('queryResponse').innerHTML = "";
 
             try {
-                const response = await fetch(`${API_URL}/generate_dynamic_wordcloud/`, {
-                    method: "GET"
+                const response = await fetch(`${API_URL}/rag_chat/`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ query }),
                 });
 
-                if (!response.ok) {
-                    alert("Error generating word cloud.");
-                    return;
-                }
-
-                const blob = await response.blob();
-                const imgUrl = URL.createObjectURL(blob);
-                document.getElementById('wordcloudImage').src = imgUrl;
+                const result = await response.json();
+                document.getElementById('queryResponse').innerHTML = `
+                    <h3>Response:</h3>
+                    <div class="text-preview">${result.response}</div>
+                    <div class="view-more" onclick="toggleFullText(this)">View More</div>
+                `;
             } catch (error) {
-                console.error("Error generating word cloud:", error);
+                console.error("Error fetching query response:", error);
             } finally {
-                document.getElementById('wordcloudLoader').style.display = "none";
+                document.getElementById('queryLoader').style.display = "none";
             }
         }
 
