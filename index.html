@@ -148,12 +148,19 @@
         <!-- Key Insights Section -->
         <div class="section">
             <h3>Key Insights of Reports</h3>
-            <button onclick="fetchInsights()">Get Insights</button>
+
             <div id="insightsResponse" class="response">
                 <div class="loader" id="insightsLoader"></div>
             </div>
         </div>
-
+     <!-- Report Analysis Section -->
+    <div class="section">
+        <h3>Compare Reports</h3>
+   
+        <div id="reportResponse" >
+            <div class="loader" id="reportLoader"></div>
+        </div>
+    </div>
         <!-- Query Section -->
         <div class="section">
             <h3>Ask a Question about Reports</h3>
@@ -172,7 +179,9 @@
                 <img id="wordcloudImage" src="" alt="Word Cloud will appear here">
             </div>
         </div>
+
     </div>
+
 
     <script>
         const API_URL = "https://bounceai-iks2kmz3ha-uc.a.run.app";
@@ -218,6 +227,59 @@
                 generateWordCloud();
                 fetchInsights();
         }
+
+        async function generateReport() {
+    document.getElementById('reportLoader').style.display = "block";
+    document.getElementById('reportResponse').innerHTML = "";
+
+    try {
+        const response = await fetch(`${API_URL}/reportgen/`, {
+            method: "GET",
+            headers: { "Content-Type": "application/json" }
+        });
+
+        const result = await response.json();
+        console.log("Report Generation Response:", result);
+
+        let similarityScore = result["Similarity Score"] || "N/A";
+        let namedEntities = result["Named Entity Comparison"];
+        let financials = result["Financial KPI Comparison"];
+        let keyDifferences = result["Key Differences"];
+
+        let entityText = "";
+        for (let type in namedEntities["Report 1 Entities"]) {
+            entityText += `<strong>${type}:</strong> Report 1: ${namedEntities["Report 1 Entities"][type].join(", ") || "None"} | Report 2: ${namedEntities["Report 2 Entities"][type].join(", ") || "None"}<br>`;
+        }
+
+        let financialText = "";
+        for (let key in financials["Report 1 Financials"]) {
+            financialText += `<strong>${key}:</strong> Report 1: ${financials["Report 1 Financials"][key].join(", ") || "None"} | Report 2: ${financials["Report 2 Financials"][key].join(", ") || "None"}<br>`;
+        }
+
+        let differencesText = `<strong>Companies Focused:</strong> ${keyDifferences["Companies Focused"].join(", ") || "None"}<br>`;
+        for (let key in keyDifferences["Financial Discrepancies"]) {
+            differencesText += `<strong>${key}:</strong> ${keyDifferences["Financial Discrepancies"][key]}<br>`;
+        }
+
+        document.getElementById('reportResponse').innerHTML = `
+            <h3>Report Analysis</h3>
+            <strong>Similarity Score:</strong> ${similarityScore} <br><br>
+            <h4>Named Entity Comparison</h4>
+            <div class="text-preview">${entityText}</div>
+            <div class="view-more" onclick="toggleFullText(this)">View More</div>
+            <h4>Financial KPI Comparison</h4>
+            <div class="text-preview">${financialText}</div>
+            <div class="view-more" onclick="toggleFullText(this)">View More</div>
+            <h4>Key Differences</h4>
+            <div class="text-preview">${differencesText}</div>
+            <div class="view-more" onclick="toggleFullText(this)">View More</div>
+        `;
+    } catch (error) {
+        console.error("Error generating report:", error);
+    } finally {
+        document.getElementById('reportLoader').style.display = "none";
+    }
+}
 
          // Search Reports
         async function fetchInsights() {
