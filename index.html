@@ -113,7 +113,7 @@
             left: 50%;
             transform: translate(-50%, -50%);
         }
-          #loader {
+        #queryLoader {
             display: none;
             border: 4px solid #f3f3f3;
             border-top: 4px solid #4C72B0;
@@ -126,6 +126,7 @@
             left: 50%;
             transform: translate(-50%, -50%);
         }
+
         @keyframes spin {
             0% { transform: translate(-50%, -50%) rotate(0deg); }
             100% { transform: translate(-50%, -50%) rotate(360deg); }
@@ -178,9 +179,9 @@
             <h3>Ask a Question about Reports</h3>
             <input type="text" id="queryInput" placeholder="Enter your query...">
             <button onclick="queryRAG()">Get Answer</button>
-             <div class="loader" id="queryLoader"></div>
+            <div class="loader" id="queryLoader"></div>
             <div id="queryResponse" class="response">
-               
+              
             </div>
         </div>
 
@@ -316,6 +317,7 @@
                   text += (" Source: " + sources[i] + "Summary: " +summaries + "\n\n")
 
               }
+              console.log('this is text')
                 console.log(text)
                 const responseDiv = document.getElementById('insightsResponse');
                 responseDiv.innerHTML = `
